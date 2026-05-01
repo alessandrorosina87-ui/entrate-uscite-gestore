@@ -23,17 +23,17 @@ export const addTransaction = async (userId, data) => {
 };
 
 export const getDailyTransactions = (userId, date, callback, onError) => {
-  // Imposta inizio e fine giornata
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+  // Imposta inizio e fine giornata in UTC fisso per evitare drift di fuso orario
+  const startStr = `${date}T00:00:00.000Z`;
+  const endStr = `${date}T23:59:59.999Z`;
+
+  console.log(`[Query] User: ${userId} | Range: ${startStr} to ${endStr}`);
 
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", ">=", start.toISOString()),
-    where("date", "<=", end.toISOString()),
+    where("date", ">=", startStr),
+    where("date", "<=", endStr),
     orderBy("date", "desc")
   );
 

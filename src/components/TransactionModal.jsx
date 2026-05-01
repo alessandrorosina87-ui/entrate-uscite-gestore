@@ -23,7 +23,7 @@ const TransactionModal = ({ isOpen, onClose, onSave, type, initialDate }) => {
       category,
       description,
       hasInvoice: type === 'expense' ? hasInvoice : false,
-      date: new Date(date).toISOString()
+      date: `${date}T12:00:00.000Z`
     });
     // Reset form
     setAmount('');

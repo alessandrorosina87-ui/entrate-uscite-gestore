@@ -11,7 +11,7 @@ import {
   Trash2,
   Receipt
 } from 'lucide-react';
-import { collection, query, where, orderBy, onSnapshot, startAt, endAt } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { deleteTransaction } from '../services/transactions';
@@ -29,16 +29,17 @@ const History = () => {
   useEffect(() => {
     if (!user) return;
 
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // Standardizza range date in UTC
+    const startStr = `${startDate}T00:00:00.000Z`;
+    const endStr = `${endDate}T23:59:59.999Z`;
+
+    console.log(`[History Query] User: ${user.uid} | From: ${startStr} to ${endStr}`);
 
     const q = query(
       collection(db, "transactions"),
       where("userId", "==", user.uid),
-      where("date", ">=", start.toISOString()),
-      where("date", "<=", end.toISOString()),
+      where("date", ">=", startStr),
+      where("date", "<=", endStr),
       orderBy("date", "desc")
     );
 
