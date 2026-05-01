@@ -41,6 +41,7 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('income');
   const [totals, setTotals] = useState({ income: 0, expense: 0, balance: 0 });
+  const [queryError, setQueryError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -51,12 +52,15 @@ const Dashboard = () => {
       const income = data.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
       const expense = data.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       
-      setTotals({
-        income,
-        expense,
-        balance: income - expense
+        setTotals({
+          income,
+          expense,
+          balance: income - expense
+        });
+        setQueryError(null);
+      }, (error) => {
+        setQueryError(error.message || "Errore durante il caricamento dei dati.");
       });
-    });
 
     return () => unsubscribe();
   }, [user, selectedDate]);
@@ -127,6 +131,21 @@ const Dashboard = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        {/* Error Alert */}
+        {queryError && (
+          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 p-6 rounded-[2rem] flex flex-col gap-3">
+            <div className="flex items-center gap-3 font-bold">
+              <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              Problema di Sincronizzazione
+            </div>
+            <p className="text-sm opacity-80 leading-relaxed">
+              {queryError.includes('index') 
+                ? "Il database richiede un indice per questa ricerca. Per favore, controlla la console del browser per il link di creazione automatica." 
+                : queryError}
+            </p>
+          </div>
+        )}
+
         {/* Hero Card */}
         <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-[2rem] p-6 sm:p-10 shadow-2xl shadow-blue-500/5 dark:shadow-none border border-gray-100 dark:border-gray-700">
           <div className="flex justify-between items-start mb-2">

@@ -22,7 +22,7 @@ export const addTransaction = async (userId, data) => {
   });
 };
 
-export const getDailyTransactions = (userId, date, callback) => {
+export const getDailyTransactions = (userId, date, callback, onError) => {
   // Imposta inizio e fine giornata
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
@@ -43,6 +43,9 @@ export const getDailyTransactions = (userId, date, callback) => {
       ...doc.data()
     }));
     callback(transactions);
+  }, (error) => {
+    console.error("Error in getDailyTransactions:", error);
+    if (onError) onError(error);
   });
 };
 

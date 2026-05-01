@@ -24,6 +24,7 @@ const History = () => {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState([]);
   const [totals, setTotals] = useState({ income: 0, expense: 0 });
+  const [queryError, setQueryError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -48,6 +49,10 @@ const History = () => {
       const income = data.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
       const expense = data.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       setTotals({ income, expense });
+      setQueryError(null);
+    }, (error) => {
+      console.error("Error in History query:", error);
+      setQueryError(error.message);
     });
 
     return () => unsubscribe();
@@ -71,6 +76,21 @@ const History = () => {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        {/* Error Alert */}
+        {queryError && (
+          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 p-6 rounded-[2rem] flex flex-col gap-3">
+            <div className="flex items-center gap-3 font-bold">
+              <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
+              Problema di Sincronizzazione
+            </div>
+            <p className="text-sm opacity-80 leading-relaxed">
+              {queryError.includes('index') 
+                ? "Questa ricerca richiede un indice. Segui il link nella console del browser per crearlo." 
+                : queryError}
+            </p>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-8 shadow-xl">
           <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-xs font-black uppercase tracking-widest">
