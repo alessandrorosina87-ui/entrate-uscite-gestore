@@ -11,6 +11,22 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
+// Validazione preventiva per debug in produzione
+const missingKeys = Object.entries(firebaseConfig)
+  .filter(([key, value]) => !value)
+  .map(([key]) => key);
+
+if (missingKeys.length > 0) {
+  console.error("ERRORE CRITICO: Variabili Firebase mancanti nel build:", missingKeys);
+}
+
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  console.error("ERRORE CRITICO: Fallimento initializeApp:", error);
+  alert("Errore critico durante l'inizializzazione di Firebase. Controlla la console.");
+}
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);

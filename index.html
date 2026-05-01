@@ -7,7 +7,19 @@
     <title>entrate-uscite-gestore</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; background: #f9fafb;">
+        <div style="text-align: center;">
+          <h2 style="color: #4b5563;">Caricamento in corso...</h2>
+          <p style="color: #9ca3af;">Se questa schermata persiste, potrebbe esserci un problema di caricamento del JavaScript.</p>
+        </div>
+      </div>
+    </div>
+    <noscript>
+      <div style="padding: 20px; text-align: center; color: red;">
+        L'applicazione richiede JavaScript per funzionare. Per favore, abilitalo nel tuo browser.
+      </div>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
