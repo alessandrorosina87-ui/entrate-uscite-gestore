@@ -8,11 +8,12 @@ import {
   Plus, 
   Minus, 
   History, 
-  TrendingUp, 
-  TrendingDown, 
   Receipt,
   Trash2,
-  BarChart3
+  BarChart3,
+  Moon,
+  Sun,
+  Calendar as CalendarIcon
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -24,6 +25,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
+import { useTheme } from '../context/ThemeContext';
 import { getDailyTransactions, addTransaction, deleteTransaction } from '../services/transactions';
 import { formatCurrency } from '../utils/formatters';
 import TransactionModal from '../components/TransactionModal';
@@ -31,6 +33,8 @@ import TransactionModal from '../components/TransactionModal';
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('income');
@@ -39,8 +43,7 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
 
-    const today = new Date().toISOString().split('T')[0];
-    const unsubscribe = getDailyTransactions(user.uid, today, (data) => {
+    const unsubscribe = getDailyTransactions(user.uid, selectedDate, (data) => {
       setTransactions(data);
       
       const income = data.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -83,133 +86,177 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white pb-24">
-      <header className="bg-gray-900/50 backdrop-blur-md border-b border-gray-800 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-            Riepilogo Oggi
-          </h1>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500 hidden sm:block">{user.email}</span>
-            <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-white transition-colors">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300 pb-24">
+      {/* Header */}
+      <header className="bg-white/80 dark:bg-gray-900/50 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
+        <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400 bg-clip-text text-transparent">
+              Riepilogo
+            </h1>
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+              <CalendarIcon size={14} className="text-gray-500" />
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs font-bold outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              title="Cambia Tema"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <button 
+              onClick={handleLogout} 
+              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              title="Esci"
+            >
               <LogOut size={20} />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* Hero Card */}
-        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl p-8 shadow-xl border border-gray-700">
-          <p className="text-gray-400 text-sm font-medium mb-1">Saldo Giornaliero</p>
-          <h2 className={`text-5xl font-bold mb-8 ${totals.balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+        <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-[2rem] p-6 sm:p-10 shadow-2xl shadow-blue-500/5 dark:shadow-none border border-gray-100 dark:border-gray-700">
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo del {new Date(selectedDate).toLocaleDateString('it-IT')}</p>
+          </div>
+          <h2 className={`text-4xl sm:text-6xl font-black mb-8 tracking-tight ${totals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {formatCurrency(totals.balance)}
           </h2>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-900/50 rounded-2xl p-4 border border-emerald-500/10">
-              <div className="flex items-center gap-2 text-emerald-400 mb-1">
-                <TrendingUp size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Entrate</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-emerald-50 dark:bg-gray-900/50 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-500/10">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
+                <TrendingUp size={16} />
+                <span className="text-[11px] font-black uppercase tracking-widest">Entrate Totali</span>
               </div>
-              <p className="text-xl font-semibold">{formatCurrency(totals.income)}</p>
+              <p className="text-2xl font-bold dark:text-white">{formatCurrency(totals.income)}</p>
             </div>
-            <div className="bg-gray-900/50 rounded-2xl p-4 border border-red-500/10">
-              <div className="flex items-center gap-2 text-red-400 mb-1">
-                <TrendingDown size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">Uscite</span>
+            <div className="bg-red-50 dark:bg-gray-900/50 rounded-2xl p-5 border border-red-100 dark:border-red-500/10">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-2">
+                <TrendingDown size={16} />
+                <span className="text-[11px] font-black uppercase tracking-widest">Uscite Totali</span>
               </div>
-              <p className="text-xl font-semibold">{formatCurrency(totals.expense)}</p>
+              <p className="text-2xl font-bold dark:text-white">{formatCurrency(totals.expense)}</p>
             </div>
           </div>
         </div>
 
-        {/* Charts Section */}
-        <div className="bg-gray-900 border border-gray-800 rounded-3xl p-6 shadow-xl">
-          <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium">
-            <BarChart3 size={16} />
-            <span>Andamento Giornaliero</span>
+        {/* Charts & Actions Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chart Section */}
+          <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-xl shadow-gray-200/50 dark:shadow-none">
+            <div className="flex items-center gap-2 mb-8 text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider">
+              <BarChart3 size={18} />
+              <span>Analisi Veloce</span>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[
+                  { name: 'Entrate', value: totals.income },
+                  { name: 'Uscite', value: totals.expense }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#E5E7EB"} vertical={false} />
+                  <XAxis dataKey="name" stroke={isDarkMode ? "#9CA3AF" : "#6B7280"} fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis hide />
+                  <Tooltip 
+                    cursor={{fill: isDarkMode ? '#1F2937' : '#F3F4F6', radius: 12}}
+                    contentStyle={{ 
+                      backgroundColor: isDarkMode ? '#111827' : '#FFFFFF', 
+                      border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`, 
+                      borderRadius: '16px',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                    }}
+                    itemStyle={{ fontSize: '13px', fontWeight: 'bold' }}
+                  />
+                  <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={80}>
+                    <Cell fill={isDarkMode ? "#10B981" : "#059669"} />
+                    <Cell fill={isDarkMode ? "#EF4444" : "#DC2626"} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[
-                { name: 'Entrate', value: totals.income },
-                { name: 'Uscite', value: totals.expense }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis hide />
-                <Tooltip 
-                  cursor={{fill: 'transparent'}}
-                  contentStyle={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '12px' }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={60}>
-                  <Cell fill="#10B981" />
-                  <Cell fill="#EF4444" />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            onClick={() => handleOpenModal('income')}
-            className="flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-emerald-900/20"
-          >
-            <Plus size={24} /> Entrata
-          </button>
-          <button 
-            onClick={() => handleOpenModal('expense')}
-            className="flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 py-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-red-900/20"
-          >
-            <Minus size={24} /> Uscita
-          </button>
+          {/* Quick Actions Container */}
+          <div className="flex flex-col gap-4">
+            <button 
+              onClick={() => handleOpenModal('income')}
+              className="flex-1 flex flex-col items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white p-6 rounded-[2rem] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-emerald-500/20"
+            >
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <Plus size={32} />
+              </div>
+              <span className="text-xl">Nuova Entrata</span>
+            </button>
+            <button 
+              onClick={() => handleOpenModal('expense')}
+              className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white p-6 rounded-[2rem] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-red-500/20"
+            >
+              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+                <Minus size={32} />
+              </div>
+              <span className="text-xl">Nuova Uscita</span>
+            </button>
+          </div>
         </div>
 
         {/* Transaction List */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold">Ultime Operazioni</h3>
+        <div className="space-y-4 pt-4">
+          <div className="flex justify-between items-end px-2">
+            <div>
+              <h3 className="text-2xl font-black">Operazioni</h3>
+              <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mt-1">Elenco del giorno selezionato</p>
+            </div>
             <button 
               onClick={() => navigate('/history')}
-              className="text-sm text-blue-400 flex items-center gap-1 hover:underline"
+              className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-4 py-2 rounded-full transition-all"
             >
-              <History size={16} /> Storico completo
+              <History size={18} />
+              <span>Vedi Storico</span>
             </button>
           </div>
           
           <div className="space-y-3">
             {transactions.length === 0 ? (
-              <div className="text-center py-12 bg-gray-900/50 rounded-3xl border border-dashed border-gray-800 text-gray-500">
-                Nessuna operazione registrata oggi
+              <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 flex flex-col items-center gap-3">
+                <CalendarIcon size={48} className="opacity-20" />
+                <p className="font-medium">Nessuna operazione per questa data</p>
               </div>
             ) : (
               transactions.map((t) => (
-                <div key={t.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between group">
+                <div key={t.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center justify-between group hover:shadow-lg transition-all">
                   <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                    <div className={`p-4 rounded-2xl ${t.type === 'income' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
+                      {t.type === 'income' ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold capitalize">{t.category}</p>
-                        {t.hasInvoice && <Receipt size={14} className="text-blue-400" title="Fattura presente" />}
+                        <p className="font-bold text-lg capitalize">{t.category}</p>
+                        {t.hasInvoice && <Receipt size={16} className="text-blue-500" title="Fattura presente" />}
                       </div>
-                      <p className="text-sm text-gray-500">{t.description || 'Nessuna descrizione'}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">"{t.description || 'Nessuna descrizione'}"</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <p className={`font-bold ${t.type === 'income' ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <div className="flex items-center gap-5">
+                    <p className={`text-xl font-black ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                       {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                     </p>
                     <button 
                       onClick={() => handleDelete(t.id)}
-                      className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all p-1"
+                      className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-500 transition-colors p-2"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 </div>
@@ -224,6 +271,7 @@ const Dashboard = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSaveTransaction}
         type={modalType}
+        initialDate={selectedDate}
       />
     </div>
   );
