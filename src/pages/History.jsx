@@ -18,8 +18,12 @@ import { deleteTransaction } from '../services/transactions';
 const History = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toLocaleDateString('en-CA');
+  });
+  const [endDate, setEndDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totals, setTotals] = useState({ income: 0, expense: 0 });

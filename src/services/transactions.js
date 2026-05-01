@@ -25,13 +25,14 @@ export const addTransaction = async (userId, data) => {
 
 export const getDailyTransactions = (userId, date, callback, onError) => {
   // date is expected in YYYY-MM-DD format
-  console.log(`[Realtime Listener] Subscribing to: ${userId} | Date: ${date}`);
+  console.log(`[Realtime Listener] Subscribing to: ${userId} | Date range for: ${date}`);
 
+  // Using a range query to catch both "YYYY-MM-DD" and "YYYY-MM-DDThh:mm:ss..."
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", date)
-    // Removed orderBy("createdAt") to avoid mandatory composite index errors in production
+    where("date", ">=", date),
+    where("date", "<=", date + "\uf8ff")
   );
 
   return onSnapshot(q, (snapshot) => {
@@ -54,6 +55,7 @@ export const getDailyTransactions = (userId, date, callback, onError) => {
     if (onError) onError(error);
   });
 };
+
 
 
 export const deleteTransaction = async (id) => {

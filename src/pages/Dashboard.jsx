@@ -32,7 +32,7 @@ import TransactionModal from '../components/TransactionModal';
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // en-CA gives YYYY-MM-DD format
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
