@@ -15,6 +15,7 @@ import { db } from "../firebase/config";
 const COLLECTION_NAME = "transactions";
 
 export const addTransaction = async (userId, data) => {
+  // data should contain: type, category, amount, description, fattura, date
   return await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
     userId,
@@ -23,16 +24,13 @@ export const addTransaction = async (userId, data) => {
 };
 
 export const getDailyTransactions = (userId, date, callback, onError) => {
-  // Usiamo la data standardizzata a mezzogiorno UTC per l'uguaglianza
-  // Questo evita la necessità di indici compositi per la dashboard giornaliera
-  const targetDate = `${date}T12:00:00.000Z`;
-
-  console.log(`[Query Dashboard] User: ${userId} | Date: ${targetDate}`);
+  // date is expected in YYYY-MM-DD format
+  console.log(`[Query Dashboard] User: ${userId} | Date: ${date}`);
 
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", "==", targetDate),
+    where("date", "==", date),
     orderBy("createdAt", "desc")
   );
 
@@ -55,3 +53,4 @@ export const deleteTransaction = async (id) => {
 export const updateTransaction = async (id, data) => {
   return await updateDoc(doc(db, COLLECTION_NAME, id), data);
 };
+

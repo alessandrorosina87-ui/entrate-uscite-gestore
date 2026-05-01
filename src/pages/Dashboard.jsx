@@ -11,8 +11,6 @@ import {
   Receipt,
   Trash2,
   BarChart3,
-  Moon,
-  Sun,
   Calendar as CalendarIcon,
   TrendingUp,
   TrendingDown
@@ -27,7 +25,6 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import { useTheme } from '../context/ThemeContext';
 import { getDailyTransactions, addTransaction, deleteTransaction } from '../services/transactions';
 import { formatCurrency } from '../utils/formatters';
 import TransactionModal from '../components/TransactionModal';
@@ -35,11 +32,10 @@ import TransactionModal from '../components/TransactionModal';
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isDarkMode, toggleTheme } = useTheme();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('income');
+  const [modalType, setModalType] = useState('entrata');
   const [totals, setTotals] = useState({ income: 0, expense: 0, balance: 0 });
   const [queryError, setQueryError] = useState(null);
 
@@ -49,18 +45,18 @@ const Dashboard = () => {
     const unsubscribe = getDailyTransactions(user.uid, selectedDate, (data) => {
       setTransactions(data);
       
-      const income = data.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-      const expense = data.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const income = data.filter(t => t.type === 'entrata' || t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = data.filter(t => t.type === 'uscita' || t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       
-        setTotals({
-          income,
-          expense,
-          balance: income - expense
-        });
-        setQueryError(null);
-      }, (error) => {
-        setQueryError(error.message || "Errore durante il caricamento dei dati.");
+      setTotals({
+        income,
+        expense,
+        balance: income - expense
       });
+      setQueryError(null);
+    }, (error) => {
+      setQueryError(error.message || "Errore durante il caricamento dei dati.");
+    });
 
     return () => unsubscribe();
   }, [user, selectedDate]);
@@ -74,7 +70,9 @@ const Dashboard = () => {
 
   const handleSaveTransaction = async (data) => {
     try {
-      await addTransaction(user.uid, data);
+      // Ensure type is 'entrata' or 'uscita' for the database
+      const dbType = data.type === 'income' ? 'entrata' : (data.type === 'expense' ? 'uscita' : data.type);
+      await addTransaction(user.uid, { ...data, type: dbType });
     } catch (err) {
       console.error("Error adding transaction:", err);
       alert("Errore durante il salvataggio.");
@@ -92,36 +90,29 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white transition-colors duration-300 pb-24">
+    <div className="min-h-screen bg-gray-50 text-gray-900 pb-24">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-900/50 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-20">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400 bg-clip-text text-transparent">
-              Riepilogo
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">
+              Gestionale Entrate/Uscite
             </h1>
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-              <CalendarIcon size={14} className="text-gray-500" />
+            <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+              <CalendarIcon size={16} className="text-gray-500" />
               <input 
                 type="date" 
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-xs font-bold outline-none cursor-pointer"
+                className="bg-transparent text-sm font-bold outline-none cursor-pointer"
               />
             </div>
           </div>
           
           <div className="flex items-center gap-2">
             <button 
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
-              title="Cambia Tema"
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button 
               onClick={handleLogout} 
-              className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all border border-gray-200 dark:border-gray-700 shadow-sm"
+              className="p-2.5 rounded-xl bg-gray-100 text-gray-600 hover:text-red-600 hover:bg-red-50 transition-all border border-gray-200"
               title="Esci"
             >
               <LogOut size={20} />
@@ -130,55 +121,46 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
         {/* Error Alert */}
         {queryError && (
-          <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 p-6 rounded-[2rem] flex flex-col gap-3">
-            <div className="flex items-center gap-3 font-bold">
-              <span className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
-              Problema di Sincronizzazione
-            </div>
-            <p className="text-sm opacity-80 leading-relaxed">
-              {queryError.includes('index') 
-                ? "Il database richiede un indice per questa ricerca. Per favore, controlla la console del browser per il link di creazione automatica." 
-                : queryError}
-            </p>
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-center gap-3">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-ping" />
+            <p className="text-sm font-medium">{queryError}</p>
           </div>
         )}
 
         {/* Hero Card */}
-        <div className="bg-white dark:bg-gradient-to-br dark:from-gray-800 dark:to-gray-900 rounded-[2rem] p-6 sm:p-10 shadow-2xl shadow-blue-500/5 dark:shadow-none border border-gray-100 dark:border-gray-700">
-          <div className="flex justify-between items-start mb-2">
-            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Saldo del {new Date(selectedDate).toLocaleDateString('it-IT')}</p>
-          </div>
-          <h2 className={`text-4xl sm:text-6xl font-black mb-8 tracking-tight ${totals.balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+          <p className="text-gray-500 text-sm font-medium mb-1">Saldo del {new Date(selectedDate).toLocaleDateString('it-IT')}</p>
+          <h2 className={`text-5xl font-black mb-8 tracking-tight ${totals.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
             {formatCurrency(totals.balance)}
           </h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-emerald-50 dark:bg-gray-900/50 rounded-2xl p-5 border border-emerald-100 dark:border-emerald-500/10">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-2">
-                <TrendingUp size={16} />
-                <span className="text-[11px] font-black uppercase tracking-widest">Entrate Totali</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
+              <div className="flex items-center gap-2 text-emerald-600 mb-2">
+                <TrendingUp size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">Entrate Totali</span>
               </div>
-              <p className="text-2xl font-bold dark:text-white">{formatCurrency(totals.income)}</p>
+              <p className="text-3xl font-bold text-gray-900">{formatCurrency(totals.income)}</p>
             </div>
-            <div className="bg-red-50 dark:bg-gray-900/50 rounded-2xl p-5 border border-red-100 dark:border-red-500/10">
-              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-2">
-                <TrendingDown size={16} />
-                <span className="text-[11px] font-black uppercase tracking-widest">Uscite Totali</span>
+            <div className="bg-red-50 rounded-2xl p-6 border border-red-100">
+              <div className="flex items-center gap-2 text-red-600 mb-2">
+                <TrendingDown size={18} />
+                <span className="text-xs font-bold uppercase tracking-wider">Uscite Totali</span>
               </div>
-              <p className="text-2xl font-bold dark:text-white">{formatCurrency(totals.expense)}</p>
+              <p className="text-3xl font-bold text-gray-900">{formatCurrency(totals.expense)}</p>
             </div>
           </div>
         </div>
 
         {/* Charts & Actions Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Chart Section */}
-          <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] p-6 shadow-xl shadow-gray-200/50 dark:shadow-none">
-            <div className="flex items-center gap-2 mb-8 text-gray-500 dark:text-gray-400 text-sm font-bold uppercase tracking-wider">
-              <BarChart3 size={18} />
+          <div className="lg:col-span-2 bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-8 text-gray-400 text-xs font-bold uppercase tracking-wider">
+              <BarChart3 size={16} />
               <span>Analisi Veloce</span>
             </div>
             <div className="h-64 w-full">
@@ -187,22 +169,21 @@ const Dashboard = () => {
                   { name: 'Entrate', value: totals.income },
                   { name: 'Uscite', value: totals.expense }
                 ]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#E5E7EB"} vertical={false} />
-                  <XAxis dataKey="name" stroke={isDarkMode ? "#9CA3AF" : "#6B7280"} fontSize={12} tickLine={false} axisLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
+                  <XAxis dataKey="name" stroke="#9CA3AF" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis hide />
                   <Tooltip 
-                    cursor={{fill: isDarkMode ? '#1F2937' : '#F3F4F6', radius: 12}}
+                    cursor={{fill: '#F9FAFB', radius: 8}}
                     contentStyle={{ 
-                      backgroundColor: isDarkMode ? '#111827' : '#FFFFFF', 
-                      border: `1px solid ${isDarkMode ? '#374151' : '#E5E7EB'}`, 
-                      borderRadius: '16px',
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                      backgroundColor: '#FFFFFF', 
+                      border: '1px solid #E5E7EB', 
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
-                    itemStyle={{ fontSize: '13px', fontWeight: 'bold' }}
                   />
-                  <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={80}>
-                    <Cell fill={isDarkMode ? "#10B981" : "#059669"} />
-                    <Cell fill={isDarkMode ? "#EF4444" : "#DC2626"} />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={60}>
+                    <Cell fill="#10B981" />
+                    <Cell fill="#EF4444" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -212,36 +193,33 @@ const Dashboard = () => {
           {/* Quick Actions Container */}
           <div className="flex flex-col gap-4">
             <button 
-              onClick={() => handleOpenModal('income')}
-              className="flex-1 flex flex-col items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white p-6 rounded-[2rem] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-emerald-500/20"
+              onClick={() => handleOpenModal('entrata')}
+              className="flex-1 flex flex-col items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white p-6 rounded-3xl font-bold transition-all hover:scale-[1.02] shadow-lg shadow-emerald-600/10"
             >
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Plus size={32} />
+              <div className="p-3 bg-white/20 rounded-xl">
+                <Plus size={28} />
               </div>
-              <span className="text-xl">Nuova Entrata</span>
+              <span className="text-lg">Nuova Entrata</span>
             </button>
             <button 
-              onClick={() => handleOpenModal('expense')}
-              className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white p-6 rounded-[2rem] font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-red-500/20"
+              onClick={() => handleOpenModal('uscita')}
+              className="flex-1 flex flex-col items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white p-6 rounded-3xl font-bold transition-all hover:scale-[1.02] shadow-lg shadow-red-600/10"
             >
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Minus size={32} />
+              <div className="p-3 bg-white/20 rounded-xl">
+                <Minus size={28} />
               </div>
-              <span className="text-xl">Nuova Uscita</span>
+              <span className="text-lg">Nuova Uscita</span>
             </button>
           </div>
         </div>
 
         {/* Transaction List */}
         <div className="space-y-4 pt-4">
-          <div className="flex justify-between items-end px-2">
-            <div>
-              <h3 className="text-2xl font-black">Operazioni</h3>
-              <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mt-1">Elenco del giorno selezionato</p>
-            </div>
+          <div className="flex justify-between items-center px-2">
+            <h3 className="text-xl font-bold">Operazioni Recenti</h3>
             <button 
               onClick={() => navigate('/history')}
-              className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 px-4 py-2 rounded-full transition-all"
+              className="text-sm font-bold text-blue-600 flex items-center gap-2 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all"
             >
               <History size={18} />
               <span>Vedi Storico</span>
@@ -250,34 +228,34 @@ const Dashboard = () => {
           
           <div className="space-y-3">
             {transactions.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-500 flex flex-col items-center gap-3">
-                <CalendarIcon size={48} className="opacity-20" />
-                <p className="font-medium">Nessuna operazione per questa data</p>
+              <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-gray-400 flex flex-col items-center gap-3">
+                <CalendarIcon size={40} className="opacity-20" />
+                <p className="font-medium">Nessun dato per oggi</p>
               </div>
             ) : (
               transactions.map((t) => (
-                <div key={t.id} className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 flex items-center justify-between group hover:shadow-lg transition-all">
+                <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:border-gray-200 transition-all shadow-sm">
                   <div className="flex items-center gap-4">
-                    <div className={`p-4 rounded-2xl ${t.type === 'income' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                      {t.type === 'income' ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+                    <div className={`p-3 rounded-xl ${t.type === 'entrata' || t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                      {t.type === 'entrata' || t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-bold text-lg capitalize">{t.category}</p>
-                        {t.hasInvoice && <Receipt size={16} className="text-blue-500" title="Fattura presente" />}
+                        <p className="font-bold text-gray-900 capitalize">{t.category}</p>
+                        {t.fattura && <Receipt size={14} className="text-blue-500" title="Fattura presente" />}
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">"{t.description || 'Nessuna descrizione'}"</p>
+                      <p className="text-sm text-gray-500 italic truncate max-w-[200px]">{t.description || 'Senza descrizione'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-5">
-                    <p className={`text-xl font-black ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                      {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                  <div className="flex items-center gap-6">
+                    <p className={`text-lg font-bold ${t.type === 'entrata' || t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {t.type === 'entrata' || t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                     </p>
                     <button 
                       onClick={() => handleDelete(t.id)}
-                      className="text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-500 transition-colors p-2"
+                      className="text-gray-300 hover:text-red-500 transition-colors p-1"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
