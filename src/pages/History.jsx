@@ -40,7 +40,7 @@ const History = () => {
       collection(db, "transactions"),
       where("userId", "==", user.uid),
       where("date", ">=", startDate),
-      where("date", "<=", endDate)
+      where("date", "<=", endDate + "\uf8ff")
       // Removed orderBy("date") to avoid mandatory composite index errors in production
     );
 
