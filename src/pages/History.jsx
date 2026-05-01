@@ -21,38 +21,54 @@ const History = () => {
   const [startDate, setStartDate] = useState(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [totals, setTotals] = useState({ income: 0, expense: 0 });
   const [queryError, setQueryError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
 
-    // Use standard YYYY-MM-DD for querying
-    console.log(`[History Query] User: ${user.uid} | From: ${startDate} to ${endDate}`);
+    setIsLoading(true);
+    console.log(`[History] Initializing listener from ${startDate} to ${endDate}`);
 
     const q = query(
       collection(db, "transactions"),
       where("userId", "==", user.uid),
       where("date", ">=", startDate),
-      where("date", "<=", endDate),
-      orderBy("date", "desc")
+      where("date", "<=", endDate)
+      // Removed orderBy("date") to avoid mandatory composite index errors in production
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`[History] Data received. Count: ${snapshot.size}`);
+      const data = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        // Sort in memory by date (desc) and then by createdAt (desc)
+        .sort((a, b) => {
+          if (a.date !== b.date) {
+            return b.date.localeCompare(a.date);
+          }
+          const timeA = a.createdAt?.toMillis() || 0;
+          const timeB = b.createdAt?.toMillis() || 0;
+          return timeB - timeA;
+        });
+      
       setTransactions(data);
       
       const income = data.filter(t => t.type === 'entrata' || t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
       const expense = data.filter(t => t.type === 'uscita' || t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
       setTotals({ income, expense });
       setQueryError(null);
+      setIsLoading(false);
     }, (error) => {
-      console.error("Error in History query:", error);
+      console.error("[History] Listener error:", error);
       setQueryError(error.message);
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, [user, startDate, endDate]);
+
 
   const handleDelete = async (id) => {
     if (window.confirm("Eliminare questa operazione?")) {
@@ -131,7 +147,12 @@ const History = () => {
         {/* List */}
         <div className="space-y-4 pt-4">
           <h3 className="text-xl font-bold px-2">Risultati</h3>
-          {transactions.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-20 bg-white rounded-3xl border border-gray-50 flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <p className="text-gray-400 font-medium animate-pulse">Caricamento dati...</p>
+            </div>
+          ) : transactions.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-gray-400">
               Nessun dato trovato per questo intervallo
             </div>

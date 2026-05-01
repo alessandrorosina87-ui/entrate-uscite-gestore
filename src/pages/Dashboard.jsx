@@ -34,15 +34,23 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState('entrata');
   const [totals, setTotals] = useState({ income: 0, expense: 0, balance: 0 });
   const [queryError, setQueryError] = useState(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log("[Dashboard] No user found, skipping listener");
+      return;
+    }
+
+    setIsLoading(true);
+    console.log(`[Dashboard] Initializing listener for ${selectedDate}`);
 
     const unsubscribe = getDailyTransactions(user.uid, selectedDate, (data) => {
+      console.log(`[Dashboard] Received ${data.length} transactions for ${selectedDate}`);
       setTransactions(data);
       
       const income = data.filter(t => t.type === 'entrata' || t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -54,12 +62,19 @@ const Dashboard = () => {
         balance: income - expense
       });
       setQueryError(null);
+      setIsLoading(false);
     }, (error) => {
+      console.error("[Dashboard] Listener error:", error);
       setQueryError(error.message || "Errore durante il caricamento dei dati.");
+      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log(`[Dashboard] Cleaning up listener for ${selectedDate}`);
+      unsubscribe();
+    };
   }, [user, selectedDate]);
+
 
   const handleLogout = () => signOut(auth);
 
@@ -227,7 +242,12 @@ const Dashboard = () => {
           </div>
           
           <div className="space-y-3">
-            {transactions.length === 0 ? (
+            {isLoading ? (
+              <div className="text-center py-16 bg-white rounded-3xl border border-gray-50 flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-400 font-medium animate-pulse">Caricamento dati...</p>
+              </div>
+            ) : transactions.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-100 text-gray-400 flex flex-col items-center gap-3">
                 <CalendarIcon size={40} className="opacity-20" />
                 <p className="font-medium">Nessun dato per oggi</p>
