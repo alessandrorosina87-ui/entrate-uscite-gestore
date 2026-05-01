@@ -26,8 +26,21 @@ import {
   Cell
 } from 'recharts';
 import { getDailyTransactions, addTransaction, deleteTransaction } from '../services/transactions';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatTimestamp } from '../utils/formatters';
 import TransactionModal from '../components/TransactionModal';
+import { 
+  LogOut, 
+  Plus, 
+  Minus, 
+  History as HistoryIcon, 
+  Receipt,
+  Trash2,
+  BarChart3,
+  Calendar as CalendarIcon,
+  Clock,
+  TrendingUp,
+  TrendingDown
+} from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -236,7 +249,7 @@ const Dashboard = () => {
               onClick={() => navigate('/history')}
               className="text-sm font-bold text-blue-600 flex items-center gap-2 hover:bg-blue-50 px-4 py-2 rounded-lg transition-all"
             >
-              <History size={18} />
+              <HistoryIcon size={18} />
               <span>Vedi Storico</span>
             </button>
           </div>
@@ -253,33 +266,48 @@ const Dashboard = () => {
                 <p className="font-medium">Nessun dato per oggi</p>
               </div>
             ) : (
-              transactions.map((t) => (
-                <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:border-gray-200 transition-all shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${t.type === 'entrata' || t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                      {t.type === 'entrata' || t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-gray-900 capitalize">{t.category}</p>
-                        {t.fattura && <Receipt size={14} className="text-blue-500" title="Fattura presente" />}
+              transactions.map((t) => {
+                const ts = formatTimestamp(t.createdAt);
+                return (
+                  <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:border-gray-200 transition-all shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-3 rounded-xl ${t.type === 'entrata' || t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        {t.type === 'entrata' || t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                       </div>
-                      <p className="text-sm text-gray-500 italic truncate max-w-[200px]">{t.description || 'Senza descrizione'}</p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-900 capitalize">{t.category}</p>
+                          {t.fattura && <Receipt size={14} className="text-blue-500" title="Fattura presente" />}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5">
+                          <p className="text-xs text-gray-500 italic truncate max-w-[150px]">{t.description || 'Senza descrizione'}</p>
+                          <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                            <span className="flex items-center gap-1">
+                              <CalendarIcon size={12} className="text-gray-300" />
+                              {ts.date}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} className="text-gray-300" />
+                              {ts.time}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <p className={`text-lg font-bold ${t.type === 'entrata' || t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {t.type === 'entrata' || t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                      </p>
+                      <button 
+                        onClick={() => handleDelete(t.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <p className={`text-lg font-bold ${t.type === 'entrata' || t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {t.type === 'entrata' || t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                    </p>
-                    <button 
-                      onClick={() => handleDelete(t.id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

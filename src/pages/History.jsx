@@ -3,16 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, 
-  Calendar,
+  Calendar as CalendarIcon,
   Filter,
   Trash2,
   Receipt,
+  Clock,
   TrendingUp,
   TrendingDown
 } from 'lucide-react';
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
-import { formatCurrency, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate, formatTimestamp } from '../utils/formatters';
 import { deleteTransaction } from '../services/transactions';
 
 const History = () => {
@@ -161,35 +162,50 @@ const History = () => {
               Nessun dato trovato per questo intervallo
             </div>
           ) : (
-            transactions.map((t) => (
-              <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:border-gray-200 transition-all shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${t.type === 'entrata' || t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-                    <Calendar size={20} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-gray-900 capitalize">{t.category}</p>
-                      {(t.fattura || t.hasInvoice) && <Receipt size={14} className="text-blue-500" />}
+            transactions.map((t) => {
+              const ts = formatTimestamp(t.createdAt);
+              return (
+                <div key={t.id} className="bg-white border border-gray-100 rounded-2xl p-5 flex items-center justify-between group hover:border-gray-200 transition-all shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-xl ${t.type === 'entrata' || t.type === 'income' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                      {t.type === 'entrata' || t.type === 'income' ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                     </div>
-                    <p className="text-sm text-gray-500 font-medium">
-                      {formatDate(t.date)} • <span className="italic">"{t.description || 'Senza descrizione'}"</span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-gray-900 capitalize">{t.category}</p>
+                        {(t.fattura || t.hasInvoice) && <Receipt size={14} className="text-blue-500" />}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5">
+                        <p className="text-sm text-gray-500 font-medium">
+                          {formatDate(t.date)} • <span className="italic">"{t.description || 'Senza descrizione'}"</span>
+                        </p>
+                        <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-tight border-l border-gray-200 pl-3">
+                          <span className="flex items-center gap-1">
+                            <CalendarIcon size={12} className="text-gray-300" />
+                            {ts.date}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} className="text-gray-300" />
+                            {ts.time}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <p className={`text-lg font-bold ${t.type === 'entrata' || t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {t.type === 'entrata' || t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                     </p>
+                    <button 
+                      onClick={() => handleDelete(t.id)}
+                      className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <p className={`text-lg font-bold ${t.type === 'entrata' || t.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {t.type === 'entrata' || t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                  </p>
-                  <button 
-                    onClick={() => handleDelete(t.id)}
-                    className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </main>
