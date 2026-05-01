@@ -13,7 +13,9 @@ import {
   BarChart3,
   Moon,
   Sun,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -57,7 +59,7 @@ const Dashboard = () => {
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, selectedDate]);
 
   const handleLogout = () => signOut(auth);
 
