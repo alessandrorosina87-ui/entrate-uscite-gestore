@@ -23,18 +23,17 @@ export const addTransaction = async (userId, data) => {
 };
 
 export const getDailyTransactions = (userId, date, callback, onError) => {
-  // Imposta inizio e fine giornata in UTC fisso per evitare drift di fuso orario
-  const startStr = `${date}T00:00:00.000Z`;
-  const endStr = `${date}T23:59:59.999Z`;
+  // Usiamo la data standardizzata a mezzogiorno UTC per l'uguaglianza
+  // Questo evita la necessità di indici compositi per la dashboard giornaliera
+  const targetDate = `${date}T12:00:00.000Z`;
 
-  console.log(`[Query] User: ${userId} | Range: ${startStr} to ${endStr}`);
+  console.log(`[Query Dashboard] User: ${userId} | Date: ${targetDate}`);
 
   const q = query(
     collection(db, COLLECTION_NAME),
     where("userId", "==", userId),
-    where("date", ">=", startStr),
-    where("date", "<=", endStr),
-    orderBy("date", "desc")
+    where("date", "==", targetDate),
+    orderBy("createdAt", "desc")
   );
 
   return onSnapshot(q, (snapshot) => {
