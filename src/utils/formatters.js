@@ -15,18 +15,22 @@ export const formatDate = (date) => {
 
 export const formatTimestamp = (timestamp) => {
   if (!timestamp) return { date: '-', time: '-' };
-  const dateObj = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   
-  return {
-    date: dateObj.toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    }),
-    time: dateObj.toLocaleTimeString('it-IT', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  };
+  try {
+    // Handle Firestore Timestamp or JS Date
+    const d = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    
+    return {
+      date: d.toLocaleDateString('it-IT'),
+      time: d.toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      })
+    };
+  } catch (error) {
+    console.error("Error formatting timestamp:", error);
+    return { date: '-', time: '-' };
+  }
 };
+
 

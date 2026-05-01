@@ -175,17 +175,15 @@ const History = () => {
                         <p className="font-bold text-gray-900 capitalize">{t.category}</p>
                         {(t.fattura || t.hasInvoice) && <Receipt size={14} className="text-blue-500" />}
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5">
-                        <p className="text-sm text-gray-500 font-medium">
-                          {formatDate(t.date)} • <span className="italic">"{t.description || 'Senza descrizione'}"</span>
-                        </p>
-                        <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-tight border-l border-gray-200 pl-3">
-                          <span className="flex items-center gap-1">
-                            <CalendarIcon size={12} className="text-gray-300" />
+                      <div className="flex flex-col gap-1 mt-1">
+                        <p className="text-xs text-gray-400 italic">"{t.description || 'Senza descrizione'}"</p>
+                        <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500">
+                          <span className="flex items-center gap-1.5">
+                            <CalendarIcon size={13} className="text-blue-400" />
                             {ts.date}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} className="text-gray-300" />
+                          <span className="flex items-center gap-1.5">
+                            <Clock size={13} className="text-blue-400" />
                             {ts.time}
                           </span>
                         </div>
